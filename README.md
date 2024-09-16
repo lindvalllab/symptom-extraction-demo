@@ -9,3 +9,4 @@ The dataset is a .csv file with at least two columns:
 - `label`: the expected output. For symptom tracking (binary case), the label should be 'Positive' if any symptom is mentioned in the text, and 'Negative' otherwise. For symptom extraction (multi-label case), the label should be a semicolon-separated string of symptoms, e.g. `fever;other;trouble drinking fluids`
 
 The dataset can include any additional metadata as columns, in this case you'll find the `source` field, which corresponds to the ID of the transcript from which the text segment was taken from.
+Copyright © 2024 Dana-Farber Cancer Institute, Inc. All Rights Reserved.
