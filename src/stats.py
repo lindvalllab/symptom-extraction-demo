@@ -3,6 +3,24 @@ import pandas as pd
 from statsmodels.stats.contingency_tables import cochrans_q, mcnemar
 
 
+def _drop_rows_with_null_predictions(df: pd.DataFrame, pred_prefix: str = 'pred_status_') -> pd.DataFrame:
+    """
+    Drop rows where any prediction column has null values.
+    
+    Parameters:
+    df (pd.DataFrame): The DataFrame to process
+    pred_prefix (str): The prefix of prediction columns to check
+    
+    Returns:
+    pd.DataFrame: DataFrame with rows containing null predictions removed
+    """
+    # Get all prediction columns
+    pred_cols = [col for col in df.columns if col.startswith(pred_prefix)]
+    
+    # Drop rows where any prediction column has null values
+    return df.dropna(subset=pred_cols)
+
+
 def _add_true_if_correct_columns_to_df(df: pd.DataFrame, pred_prefix: str = 'pred_status_', label_column: str = 'label'):
     df_copy = df.copy()
     label_dtype = df_copy[label_column].dtype
@@ -17,6 +35,9 @@ def _add_true_if_correct_columns_to_df(df: pd.DataFrame, pred_prefix: str = 'pre
 
 
 def cochrans_q_test(df: pd.DataFrame, pred_prefix: str = 'pred_status_', label_column: str = 'label'):
+    # First drop rows with null predictions
+    df = _drop_rows_with_null_predictions(df, pred_prefix=pred_prefix)
+    
     q_df = _add_true_if_correct_columns_to_df(df, pred_prefix=pred_prefix, label_column=label_column)
 
     cols_for_test = [col for col in q_df.columns if col.endswith('_correct')]
@@ -45,7 +66,15 @@ def mcnemar_pairwise(df: pd.DataFrame, pred_prefix: str = 'pred_status_', label_
         for j in range(i + 1, len(cols_for_test)):
             col1 = cols_for_test[i]
             col2 = cols_for_test[j]
-            contingency_table = pd.crosstab(q_df[col1], q_df[col2])
+            
+            # Only drop null values for the specific pair being compared
+            pair_df = q_df[[col1, col2]].dropna()
+            
+            if len(pair_df) == 0:
+                results[f'{col1} vs {col2}'] = (None, None)
+                continue
+                
+            contingency_table = pd.crosstab(pair_df[col1], pair_df[col2])
 
             # Extract counts
             b = contingency_table.loc[True, False] if (

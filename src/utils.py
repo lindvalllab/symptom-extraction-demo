@@ -16,6 +16,20 @@ def check_null_in_response_columns(df: pd.DataFrame, prefix: str = 'response_'):
             print(f"Column '{col}' has {null_count} null values.")
 
 
+def parse_value(x):
+    if isinstance(x, dict) and 'status' in x:
+        return x['status']
+    elif isinstance(x, str):
+        x_lower = x.lower()
+        if x_lower == 'true':
+            return True
+        elif x_lower == 'false':
+            return False
+        else:
+            return None  # Ignore unexpected strings like "cow"
+    else:
+        return None
+
 def convert_status_response_columns(df: pd.DataFrame, prefix: str = 'response_status'):
     """
     Converts columns with specified prefix to boolean based on the presence of 'status' key in dictionary values
@@ -23,6 +37,7 @@ def convert_status_response_columns(df: pd.DataFrame, prefix: str = 'response_st
 
     Parameters:
     df (pd.DataFrame): The DataFrame to process.
+    prefix (str): The prefix of the columns to convert.
 
     Returns:
     pd.DataFrame: The modified DataFrame.
@@ -31,8 +46,8 @@ def convert_status_response_columns(df: pd.DataFrame, prefix: str = 'response_st
     columns_to_convert = [col for col in df.columns if col.startswith(prefix)]
 
     for col in columns_to_convert:
-        new_col = 'pred_' + col[len(prefix):]
-        df[new_col] = df[col].apply(lambda x: x.get('status') if isinstance(x, dict) and 'status' in x else None)
+        new_col = 'pred_status_' + col[len(prefix):]
+        df[new_col] = df[col].apply(parse_value)
 
     df.drop(columns=columns_to_convert, inplace=True)
     return df

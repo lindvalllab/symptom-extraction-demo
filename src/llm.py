@@ -1,5 +1,6 @@
 import json
 import time
+from openai import OpenAI
 import openai
 
 from src.schema import OutputSchema
@@ -19,7 +20,7 @@ def openai_chat_completion_response(
             model=model,
             messages=messages,
             tools=[output_schema.tool],
-            tool_choice=output_schema.tool_choice,
+            #tool_choice=output_schema.tool_choice,
             **kwargs,
         )
         output = completion.choices[0].message.tool_calls[0].function.arguments
