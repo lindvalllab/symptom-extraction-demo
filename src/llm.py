@@ -1,13 +1,17 @@
 import json
 import time
+import os
 from openai import OpenAI
 import openai
+import traceback
+
 
 #from src.schema import OutputSchema
 
 
 def openai_chat_completion_response(
         client: openai.OpenAI,
+        #client,
         system_message: str,
         user_message: str,
         output_schema:type,
@@ -17,15 +21,30 @@ def openai_chat_completion_response(
 ):
     def _completion(messages: list[dict[str, str]]):
         
-        completion = client.responses.parse(
-            model=model,
-            input=messages,
-            text_format=output_schema,
-            #tool_choice=output_schema.tool_choice,
-            **kwargs,
-        )
-        output = completion.output_text
-        output = json.loads(output)
+        # Check if TOGETHER_API_KEY is set
+        if os.getenv('TOGETHER_API_KEY'):
+            # Use Together AI format
+            completion = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                response_format={
+                    "type": "json_schema",
+                    "schema": output_schema.model_json_schema(),
+                },
+                **kwargs,
+            )
+            output = json.loads(completion.choices[0].message.content)
+        else:
+            # Use OpenAI format
+            completion = client.responses.parse(
+                model=model,
+                input=messages,
+                text_format=output_schema,
+                #tool_choice=output_schema.tool_choice,
+                **kwargs,
+            )
+            output = completion.output_text
+            output = json.loads(output)
 
         return output
 
@@ -46,6 +65,7 @@ def openai_chat_completion_response(
         except Exception as e:
             print(f"Error: {e}")
             print(f"Attempt {attempts} failed")
+            traceback.print_exc()
             
             if attempts < max_attempts:
                 sleep_time = 2 ** (attempts - 2)  # Exponential backoff formula
